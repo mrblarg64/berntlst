@@ -1,5 +1,6 @@
 berntlst
 *.pem
+*.key
 
 # Prerequisites
 *.d
