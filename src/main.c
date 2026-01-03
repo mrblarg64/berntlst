@@ -52,6 +52,7 @@ WSADATA wsd;
 #include <netinet/ip.h>
 #include <unistd.h>
 #include <locale.h>
+#include <sched.h>
 #include <errno.h>
 
 #define ERRNO_T int
@@ -1020,8 +1021,19 @@ static inline void sfile()
 
 int main(int argc, char *argv[])
 {
-	#ifdef _WIN32
 	ERRNO_T myerrno;
+
+	#ifdef _WIN32
+	if (!SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS))
+	{
+		myerrno = GetLastError();
+		printf("failed SetPriorityClass(), ecode 0x%lx" NEWLINE, myerrno);
+		return myerrno;
+	}
+	//if they make GetCurrentProcess() not a psuedo handle we leak a handle here
+	//todo fix this in case they change this
+	//also todo if the ntsetinformationprocess() for io priority is exposed
+	//to win32 do that to reduce io priority
 
 	stdouth = GetStdHandle(STD_OUTPUT_HANDLE);
 	if (stdouth == INVALID_HANDLE_VALUE)
@@ -1031,6 +1043,17 @@ int main(int argc, char *argv[])
 		return myerrno;
 	}
 	#else
+	struct sched_param sp = {0};
+
+	if (sched_setscheduler(0, SCHED_IDLE, &sp))
+	{
+		myerrno = errno;
+		perror("sched_setscheduler()");
+		return myerrno;
+	}
+
+	//maybe todo ioprio_set()
+	
 	setlocale(LC_ALL, "");
 	#endif
 

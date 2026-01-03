@@ -1,3 +1,5 @@
+1.2 - 2025-01-03 - Change priority to idle.
+
 1.1 - 2026-01-03 - On windows, shrink the transmit buffer size to the common TLS maximum record size.
 
 1.0 - 2025-12-23 - Add windows support.
