@@ -1,4 +1,4 @@
-//Copyright (C) 2025 Brian William Denton
+//Copyright (C) 2025-2026 Brian William Denton
 //Available under the GNU GPLv3 License
 
 #ifdef _WIN32
@@ -33,7 +33,8 @@ ExitProcess(wsaerrno);\
 
 #define CLOSEFILE(fd) (CloseHandle(fd))
 
-#define BERNTRNSFR_LINUX_SENDFILE_MAX BUFFER_SIZE
+//common max tls record size
+#define BERNTRNSFR_LINUX_SENDFILE_MAX 0x3fff
 
 HANDLE fd;
 WSADATA wsd;
@@ -916,6 +917,13 @@ static inline void rfile(const char *const fname)
 	/* 	printf("UnmapViewOfFile() failed ecode 0x%lx" NEWLINE, myerrno); */
 	/* } */
 	/* CloseHandle(fmap); */
+
+	if (!VirtualFree(buf, 0, MEM_RELEASE))
+	{
+		myerrno = GetLastError();
+		printf("VirtualFree() 0x%lx" NEWLINE, myerrno);
+		FASTEXIT(myerrno);
+	}
 	#endif
 	CLOSEFILE(fd);
 	return;
@@ -935,7 +943,9 @@ static inline void sfile()
 	char *buf;
 	DWORD bread;
 
-	buf = VirtualAlloc(NULL, BUFFER_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	//this macro is changed for win32
+	//not a mistake!
+	buf = VirtualAlloc(NULL, BERNTRNSFR_LINUX_SENDFILE_MAX, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	if (!buf)
 	{
 		myerrno = GetLastError();
@@ -998,6 +1008,14 @@ static inline void sfile()
 	}
 	CLOSESOCK(sock);
         CLOSEFILE(fd);
+	#ifdef _WIN32
+	if (!VirtualFree(buf, 0, MEM_RELEASE))
+	{
+		myerrno = GetLastError();
+		printf("VirtualFree() 0x%lx" NEWLINE, myerrno);
+		FASTEXIT(myerrno);
+	}
+	#endif
 }
 
 int main(int argc, char *argv[])
