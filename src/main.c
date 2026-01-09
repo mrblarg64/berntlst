@@ -7,7 +7,13 @@
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#if (WINVER >= 0x0600)
 #include <qos2.h>
+#else
+#include <mstcpip.h>
+#include <ntdef.h>
+#include <ntstatus.h>
+#endif
 
 #define ERRNO_T DWORD
 #define SOCKET_T SOCKET
@@ -15,7 +21,9 @@
 #define U64_PF "%llu"
 #define SSO_CAST (const char*)
 
+#if (WINVER >= 0x0600)
 QOS_FLOWID qosfid = 0;
+#endif
 
 HANDLE stdouth;
 DWORD bout;
@@ -109,9 +117,13 @@ uint32_t ip;
 uint16_t port;
 uint64_t size;
 SOCKET_T sock;
+
+#ifndef _WIN32
 int pfd;
 int pidfd;
 pid_t child;
+#endif
+
 gnutls_session_t session;
 gnutls_certificate_credentials_t mycred;
 
@@ -194,8 +206,10 @@ static inline void setupsocket()
 	#ifdef _WIN32
 	int wsaerrno;
         DWORD ssopt;
+	#if (WINVER >= 0x0600)
 	QOS_VERSION qosv;
 	HANDLE qosh;
+	#endif
 	#else
 	int ssopt;
 	#endif
@@ -224,6 +238,7 @@ static inline void setupsocket()
 	#endif
 
 	#ifdef _WIN32
+	#if (WINVER >= 0x0600)
         qosv.MajorVersion = 1;
         qosv.MinorVersion = 0;
 	if (!QOSCreateHandle(&qosv, &qosh))
@@ -232,6 +247,14 @@ static inline void setupsocket()
 		printf("QOSCreateHandle() failed 0x%lx" NEWLINE, myerrno);
 	        FASTEXIT(myerrno);
 	}
+	#else
+	//ssopt = IPTOS_DSCP_LE;
+	ssopt = 0x04;
+	if (setsockopt(s, IPPROTO_IP, IP_TOS, SSO_CAST &ssopt, sizeof(int)) == -1)
+	{
+	        SOCKERROR("IP_TOS (DSCP) setsockopt() failed");
+	}
+	#endif
 	#else
 	//on linux-6.5.5. these are inhereted after accept()
 	//also the kernel's broken rt_tos2priority() function will
@@ -301,7 +324,7 @@ static inline void setupsocket()
 				//Comment CLOSESOCK() out if you are running on
 				//linux in wsl2 and mirrored networking mode
 			        CLOSESOCK(s);
-				#ifdef _WIN32
+				#if ((defined (_WIN32)) && (WINVER >= 0x0600))
 				if (!QOSAddSocketToFlow(qosh, sock, NULL, QOSTrafficTypeBackground, QOS_NON_ADAPTIVE_FLOW, &qosfid))
 				{
 					SOCKERROR("QOSAddSocketToFlow()");
@@ -321,7 +344,7 @@ static inline void setupsocket()
 		{
 		        SOCKERROR("connect()");
 		}
-		#ifdef _WIN32
+		#if ((defined (_WIN32)) && (WINVER >= 0x0600))
 		if (!QOSAddSocketToFlow(qosh, sock, NULL, QOSTrafficTypeBackground, QOS_NON_ADAPTIVE_FLOW, &qosfid))
 		{
 			SOCKERROR("QOSAddSocketToFlow()");
@@ -632,11 +655,23 @@ static inline void setupaddress(const char *const addr, const char *const ports)
 	unsigned long iport;
 	char *endptr;
 
+	#if ((defined(_WIN32)) && (WINVER < 0x0600))
+	char *term;
+	NTSTATUS retval;
+
+	retval = RtlIpv4StringToAddress(addr, 1, &term, (IN_ADDR *) &ip);
+	if ((retval != STATUS_SUCCESS) || (*term != 0))
+	{
+		FASTPRINT("Failed to parse ipv4 address" NEWLINE);
+	        exitbadusage();
+	}
+	#else
 	if (!inet_pton(AF_INET, addr, &ip))
 	{
 		FASTPRINT("Failed to parse ipv4 address" NEWLINE);
 	        exitbadusage();
 	}
+	#endif
 
 	iport = strtoul(ports, &endptr, 0);
 	if ((*endptr) || (iport > 0xffff))
@@ -1082,13 +1117,21 @@ int main(int argc, char *argv[])
 			if (argc < 8)
 			{
 			        FASTPRINT("you must provide a command that whose output will be transmitted!" NEWLINE);
-				return EINVAL;
+			        exitbadusage();
 			}
 			state |= FLAG_PIPE;
 		}
 		else
 		{
 			setupfileinput(argv[6]);
+		}
+	}
+	else
+	{
+		if (argc > 7)
+		{
+			FASTPRINT("you have given too many arguments!" NEWLINE);
+			exitbadusage();
 		}
 	}
 

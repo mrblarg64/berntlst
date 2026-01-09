@@ -1,1 +1,1 @@
-1.2 - 2025-01-03 - Change priority to idle.
+1.3 - 2025-01-08 - Fix handling of command line arguments. Work towards supporting earlier versions of windows.
