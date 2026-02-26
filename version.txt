@@ -1,1 +1,1 @@
-1.4 - 2025-01-24 - Attempt to used DSCP LE on Windows Vista and newer, fail gracefully.
+1.5 - 2025-02-25 - Print tcp info at end of transfer, work towards supporting older versions of Windows.
