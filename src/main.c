@@ -105,7 +105,7 @@ int fd;
 
 #define TLS_PRIORITY_STRING "NONE:+VERS-TLS1.2:+AES-256-GCM:+DHE-RSA:+ECDHE-RSA:+SHA384:+AEAD:+CTYPE-SRV-X509:+SIGN-RSA-SHA512:+COMP-NULL:+GROUP-ALL"
 
-#ifdef __ORDER_LITTLE_ENDIAN__
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define PIPE_STR 0x002d
 #else
 #define PIPE_STR 0x2d00
@@ -187,7 +187,7 @@ static inline void setupsockstorage(struct sockaddr_storage *sas, uint32_t i, ui
 {
 	((struct sockaddr_in*)sas)->sin_family = AF_INET;
 	((struct sockaddr_in*)sas)->sin_addr.s_addr = i;
-	#ifdef __ORDER_LITTLE_ENDIAN__
+	#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	((struct sockaddr_in*)sas)->sin_port = __builtin_bswap16(p);
 	#else
 	((struct sockaddr_in*)sas)->sin_port = p;
@@ -931,7 +931,7 @@ static inline void rfile(const char *const fname)
 		printf("my_recv_waitall(): %s" NEWLINE, gnutls_strerror_name(gnutlsretval));
 		FASTEXIT(1);
 	}
-	#ifdef __ORDER_LITTLE_ENDIAN__
+	#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	size = __builtin_bswap64(size);
 	#endif
 
@@ -1085,7 +1085,7 @@ static inline void sfile()
 	}
 	#endif
 
-	#ifdef __ORDER_LITTLE_ENDIAN__
+	#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	size = __builtin_bswap64(size);
 	#endif
 	gnutlsretval = my_send_waitall(session, &size, sizeof(uint64_t));
@@ -1094,7 +1094,7 @@ static inline void sfile()
 	        printf("my_send_waitall(): %s" NEWLINE, gnutls_strerror_name(gnutlsretval));
 		FASTEXIT(1);
 	}
-	#ifdef __ORDER_LITTLE_ENDIAN__
+	#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 	size = __builtin_bswap64(size);
 	#endif
 
