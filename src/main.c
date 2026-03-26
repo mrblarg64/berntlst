@@ -200,12 +200,12 @@ static inline void printtcpinfo()
 {
 	#ifdef _WIN32
 	#if NTDDI_VERSION >= NTDDI_WIN10_RS5
-	DWORD version = 1;
-	TCP_INFO_v1 tcpi;
+	DWORD version = 0;
+	TCP_INFO_v0 tcpi;
 	DWORD returned;
 	int wsaerrno;
 
-	if (WSAIoctl(sock, SIO_TCP_INFO, &version, sizeof(DWORD), &tcpi, sizeof(TCP_INFO_v1), &returned, NULL, NULL))
+	if (WSAIoctl(sock, SIO_TCP_INFO, &version, sizeof(DWORD), &tcpi, sizeof(TCP_INFO_v0), &returned, NULL, NULL))
 	{
 		SOCKERROR("WSAIoctl(SIO_TCP_INFO)");
 	}
@@ -559,8 +559,10 @@ static inline void spipe()
 {
 }
 
-static inline void setuppipe()
+static inline void setuppipe(int argc, char *argv[])
 {
+	(void)argc;
+	(void)argv;
 }
 #else
 void setuppipe(int argc, char *argv[])
