@@ -199,7 +199,7 @@ static inline void setupsockstorage(struct sockaddr_storage *sas, uint32_t i, ui
 static inline void printtcpinfo()
 {
 	#ifdef _WIN32
-	#if NTDDI_VERSION >= NTDDI_WIN10_RS5
+	#if NTDDI_VERSION >= NTDDI_WIN10_RS2
 	DWORD version = 0;
 	TCP_INFO_v0 tcpi;
 	DWORD returned;
